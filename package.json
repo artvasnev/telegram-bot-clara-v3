@@ -1,0 +1,16 @@
+{
+  "name": "telegram-notification-bot",
+  "version": "1.0.0",
+  "description": "Бот Клара для уведомлений",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.61.0",
+    "node-cron": "^3.0.2"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}

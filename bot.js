@@ -56,29 +56,54 @@ async function savePaymentsData(data) {
     }
 }
 
+// Функции для работы с данными платежей
+async function loadPaymentsData() {
+    try {
+        const data = await fs.readFile(PAYMENTS_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.log('📂 Создаём новый файл данных платежей');
+        return [];
+    }
+}
+
+async function savePaymentsData(data) {
+    try {
+        await fs.writeFile(PAYMENTS_FILE, JSON.stringify(data, null, 2));
+        console.log('💾 Данные платежей сохранены');
+    } catch (error) {
+        console.error('❌ Ошибка сохранения данных:', error);
+    }
+}
+
 async function addPaymentRecord(paymentData) {
-    const payments = await loadPaymentsData();
-    
-    const record = {
-        id: Date.now() + Math.random(),
-        clientName: paymentData.clientName,
-        masterName: paymentData.masterName,
-        packageType: paymentData.packageType,
-        practicesCount: paymentData.practicesCount,
-        totalAmount: paymentData.totalAmount,
-        paidAmount: paymentData.paidAmount,
-        remainingAmount: paymentData.totalAmount - paymentData.paidAmount,
-        remainderPayments: paymentData.remainderPayments || [],
-        createdAt: new Date().toISOString(),
-        chatId: paymentData.chatId,
-        messageThreadId: paymentData.messageThreadId
-    };
-    
-    payments.push(record);
-    await savePaymentsData(payments);
-    console.log(`💰 Добавлена запись о платеже: ${paymentData.clientName}`);
-    
-    return record;
+    try {
+        const payments = await loadPaymentsData();
+        
+        const record = {
+            id: Date.now() + Math.random(),
+            clientName: paymentData.clientName,
+            masterName: paymentData.masterName,
+            packageType: paymentData.packageType,
+            practicesCount: paymentData.practicesCount,
+            totalAmount: paymentData.totalAmount,
+            paidAmount: paymentData.paidAmount,
+            remainingAmount: paymentData.totalAmount - paymentData.paidAmount,
+            remainderPayments: paymentData.remainderPayments || [],
+            createdAt: new Date().toISOString(),
+            chatId: paymentData.chatId,
+            messageThreadId: paymentData.messageThreadId
+        };
+        
+        payments.push(record);
+        await savePaymentsData(payments);
+        console.log(`💰 Добавлена запись о платеже: ${paymentData.clientName}`);
+        
+        return record;
+    } catch (error) {
+        console.error('❌ Ошибка добавления записи:', error);
+        return null;
+    }
 }
 
 function parseDate(dateStr) {
@@ -121,37 +146,42 @@ function parseDate(dateStr) {
 }
 
 async function getUpcomingPayments() {
-    const payments = await loadPaymentsData();
-    const upcoming = [];
-    const now = new Date();
-    
-    payments.forEach(payment => {
-        if (payment.remainderPayments && payment.remainderPayments.length > 0) {
-            payment.remainderPayments.forEach(remainder => {
-                const dueDate = parseDate(remainder.date);
-                const daysUntil = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
-                
-                if (daysUntil >= 0) {
-                    upcoming.push({
-                        clientName: payment.clientName,
-                        masterName: payment.masterName,
-                        packageType: payment.packageType,
-                        amount: remainder.amount,
-                        dueDate: dueDate,
-                        dueDateStr: remainder.date,
-                        daysUntil: daysUntil,
-                        chatId: payment.chatId,
-                        messageThreadId: payment.messageThreadId
-                    });
-                }
-            });
-        }
-    });
-    
-    // Сортируем по дате (ближайшие сначала)
-    upcoming.sort((a, b) => a.dueDate - b.dueDate);
-    
-    return upcoming;
+    try {
+        const payments = await loadPaymentsData();
+        const upcoming = [];
+        const now = new Date();
+        
+        payments.forEach(payment => {
+            if (payment.remainderPayments && payment.remainderPayments.length > 0) {
+                payment.remainderPayments.forEach(remainder => {
+                    const dueDate = parseDate(remainder.date);
+                    const daysUntil = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+                    
+                    if (daysUntil >= 0) {
+                        upcoming.push({
+                            clientName: payment.clientName,
+                            masterName: payment.masterName,
+                            packageType: payment.packageType,
+                            amount: remainder.amount,
+                            dueDate: dueDate,
+                            dueDateStr: remainder.date,
+                            daysUntil: daysUntil,
+                            chatId: payment.chatId,
+                            messageThreadId: payment.messageThreadId
+                        });
+                    }
+                });
+            }
+        });
+        
+        // Сортируем по дате (ближайшие сначала)
+        upcoming.sort((a, b) => a.dueDate - b.dueDate);
+        
+        return upcoming;
+    } catch (error) {
+        console.error('❌ Ошибка получения платежей:', error);
+        return [];
+    }
 }
 
 // Функция удаления сообщения с улучшенной обработкой ошибок
